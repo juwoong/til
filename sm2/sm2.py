@@ -136,31 +136,30 @@ class SM2:
 
             return SM2Result(phase=Phase.EXPONENTIAL, ease=ease, interval=interval)
 
-    @staticmethod
-    def _handle_relearn(card: Card, choice: Choice) -> SM2Result:
+    def _handle_relearn(self, card: Card, choice: Choice) -> SM2Result:
         step = card.step
 
-        if len(INITIAL_RELEARN_INTERVALS) == 0 or card.step >= len(INITIAL_RELEARN_INTERVALS):
+        if len(self.relearn_intervals) == 0 or card.step >= len(self.relearn_intervals):
             interval = card.interval * card.ease
             return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=interval, ease=card.ease)
 
         if choice == Choice.AGAIN:
-            return SM2Result(phase=Phase.RELEARN, step=0, interval=INITIAL_RELEARN_INTERVALS[0], leech=card.leech + 1)
+            return SM2Result(phase=Phase.RELEARN, step=0, interval=self.relearn_intervals[0], leech=card.leech + 1)
         elif choice == Choice.HARD:
-            if step == 0 and len(INITIAL_RELEARN_INTERVALS) == 1:
-                return SM2Result(phase=Phase.RELEARN, step=0, interval=int(INITIAL_RELEARN_INTERVALS[0] * 1.5))
-            elif step == 0 and len(INITIAL_RELEARN_INTERVALS) > 1:
-                return SM2Result(phase=Phase.RELEARN, step=0, interval=(INITIAL_RELEARN_INTERVALS[step] + INITIAL_RELEARN_INTERVALS[step+1]) / 2)
+            if step == 0 and len(self.relearn_intervals) == 1:
+                return SM2Result(phase=Phase.RELEARN, step=0, interval=int(self.relearn_intervals[0] * 1.5))
+            elif step == 0 and len(self.relearn_intervals) > 1:
+                return SM2Result(phase=Phase.RELEARN, step=0, interval=(self.relearn_intervals[step] + self.relearn_intervals[step+1]) / 2)
 
-            return SM2Result(phase=Phase.RELEARN, step=0, interval=INITIAL_RELEARN_INTERVALS[step])
+            return SM2Result(phase=Phase.RELEARN, step=0, interval=self.relearn_intervals[step])
         elif choice == Choice.GOOD:
-            if step + 1 == len(INITIAL_RELEARN_INTERVALS):
+            if step + 1 == len(self.relearn_intervals):
                 return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=card.interval * card.ease)
 
-            return SM2Result(phase=Phase.RELEARN, step=step + 1, interval=INITIAL_RELEARN_INTERVALS[step+1])
+            return SM2Result(phase=Phase.RELEARN, step=step + 1, interval=self.relearn_intervals[step+1])
         elif choice == Choice.EASY:
             interval = min(
-                card.interval * card.ease * EASY_BONUS,
+                card.interval * card.ease * self.easy_bonus,
                 1440 * 36500 # 100 years
             )
 
