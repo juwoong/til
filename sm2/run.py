@@ -11,7 +11,8 @@ print(card)
 def return_choice(input_choice) -> Choice:
     return Choice(input_choice - 1)
 
-expect = SM2.expected_interval(card)
+sm2 = SM2()
+expect = sm2.expected_interval(card)
 
 while True:
     print(" | ".join([f"{i + 1}: {c.name} ({expect[i]})" for i, c in enumerate(Choice)]))
@@ -23,7 +24,7 @@ while True:
             continue
         break
 
-    result = SM2.get_next_card(card, return_choice(choice))
+    result = sm2.get_next_card(card, return_choice(choice))
     print(result, "\n")
 
     card.phase = result.phase
@@ -31,5 +32,5 @@ while True:
     card.ease = result.ease if result.ease is not None else card.ease
     card.interval = result.interval if result.interval is not None else card.interval
 
-    expect = SM2.expected_interval(card)
+    expect = sm2.expected_interval(card)
 
