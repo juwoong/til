@@ -1,73 +1,107 @@
 from enum import Enum
 import random
+import typing as t
+
+from pydantic import BaseModel
 
 from const import EASY_BONUS, FIRST_EXPONENTIAL_INTERVAL, INITIAL_INTERVALS, INITIAL_RELEARN_INTERVALS, LAPSE_INTERVAL_MULTIPLIER
+from dto import Choice, Phase, Card
+from libs.interval_calculator import minute_to_interval
 
 
-class Choice(int, Enum):
-    AGAIN = 0
-    HARD = 1
-    GOOD = 2
-    EASY = 3
-
-class Phase(int, Enum): 
-    LEARNING = 0
-    EXPONENTIAL = 1
-    RELEARN = 2
+class SM2Result(BaseModel):
+    phase: Phase
+    step: t.Optional[int] = None
+    ease: t.Optional[float] = None
+    interval: t.Optional[int] = None
 
 
 class SM2:
-    def get_new_card(self):
+    @staticmethod
+    def get_initial_intervals() -> t.List[str]:
         return INITIAL_INTERVALS
-    
-    def _handle_learning(self, card, choice):
+
+    @staticmethod
+    def create_initial_card(name: str, description: str) -> Card:
+        return Card(
+            name=name,
+            description=description,
+        )
+
+    @staticmethod
+    def _handle_learning(card: Card, choice: Choice) -> SM2Result:
         """
         return the next step and interval for the card
         """
-        step = card.get('step', 0)
+        step = card.step
 
         if choice == Choice.AGAIN:
-            return Phase.LEARNING, 0, INITIAL_INTERVALS[0]
+            return SM2Result(phase=Phase.LEARNING, step=0, interval=INITIAL_INTERVALS[0])
         elif choice == Choice.HARD:
-            return Phase.LEARNING, step, INITIAL_INTERVALS[step+1] / 2
+            if step == 0:
+                return SM2Result(phase=Phase.LEARNING, step=0, interval=6)
+            if step == 1:
+                return SM2Result(phase=Phase.LEARNING, step=0, interval=INITIAL_INTERVALS[step])
+            if step == 3:
+                return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=INITIAL_INTERVALS[1])
+            return SM2Result(phase=Phase.LEARNING, step=step, interval=INITIAL_INTERVALS[step+1])
         elif choice == Choice.GOOD:
-            return Phase.LEARNING, step + 1, INITIAL_INTERVALS[step+1]
+            if step == 0:
+                return SM2Result(phase=Phase.LEARNING, step=1, interval=INITIAL_INTERVALS[1])
+            if step == 3:
+                return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=FIRST_EXPONENTIAL_INTERVAL)
+            return SM2Result(phase=Phase.LEARNING, step=step + 1, interval=INITIAL_INTERVALS[step+1])
         elif choice == Choice.EASY:
-            return Phase.EXPONENTIAL, 0, INITIAL_INTERVALS[-1] + FIRST_EXPONENTIAL_INTERVAL
+            return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=FIRST_EXPONENTIAL_INTERVAL)
 
-    def _handle_exponential(self, card, choice):
-        ease = card.get('ease', 2.5)
-        interval = card.get('interval', 0)
+    @staticmethod
+    def _handle_exponential(card: Card, choice: Choice) -> SM2Result:
+        ease = card.ease
+        interval = card.interval
         rand_interval = random.randrange(0, 1441)
 
         if choice == Choice.AGAIN:
-            return Phase.RELEARN, ease - 0.2, interval * LAPSE_INTERVAL_MULTIPLIER
+            return SM2Result(phase=Phase.RELEARN, ease=ease - 0.2, interval=int(interval * LAPSE_INTERVAL_MULTIPLIER), step=0)
         elif choice == Choice.HARD:
-            return Phase.EXPONENTIAL, ease - 0.15, interval * 1.2
+            return SM2Result(phase=Phase.EXPONENTIAL, ease=ease - 0.15, interval=int(interval * 1.2))
         elif choice == Choice.GOOD:
-            return Phase.EXPONENTIAL, ease, (interval + rand_interval) * ease
+            return SM2Result(phase=Phase.EXPONENTIAL, ease=ease, interval=int((interval + rand_interval) * ease))
         elif choice == Choice.EASY:
-            return Phase.EXPONENTIAL, ease + 0.15, (interval + rand_interval) * (ease * EASY_BONUS)
+            return SM2Result(phase=Phase.EXPONENTIAL, ease=ease + 0.15, interval=int((interval + rand_interval) * (ease * EASY_BONUS)))
 
-
-    def _handle_relearn(self, card, choice):
-        step = card.get('step', 0)
+    @staticmethod
+    def _handle_relearn(card: Card, choice: Choice) -> SM2Result:
+        step = card.step
 
         if choice == Choice.AGAIN:
-            return Phase.RELEARN, 0, INITIAL_RELEARN_INTERVALS[0]
+            return SM2Result(phase=Phase.RELEARN, step=0, interval=INITIAL_RELEARN_INTERVALS[0])
         elif choice == Choice.HARD:
-            return Phase.RELEARN, step, INITIAL_RELEARN_INTERVALS[step+1] / 2
+            return SM2Result(phase=Phase.RELEARN, step=step, interval=INITIAL_RELEARN_INTERVALS[step+1] / 2)
         elif choice == Choice.GOOD:
-            return Phase.RELEARN, step + 1, INITIAL_RELEARN_INTERVALS[step+1]
+            return SM2Result(phase=Phase.RELEARN, step=step + 1, interval=INITIAL_RELEARN_INTERVALS[step+1])
         elif choice == Choice.EASY:
-            return Phase.EXPONENTIAL, 0, INITIAL_RELEARN_INTERVALS[-1] + FIRST_EXPONENTIAL_INTERVAL
-    
-    def get_next_card(self, card, choice):
-        phase = card.get('phase', Phase.LEARNING)
+            return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=INITIAL_RELEARN_INTERVALS[-1] + FIRST_EXPONENTIAL_INTERVAL)
+
+    @staticmethod
+    def get_next_card(card, choice) -> SM2Result:
+        phase = card.phase
 
         if phase == Phase.LEARNING:
-            return self._handle_learning(card, choice)
+            return SM2._handle_learning(card, choice)
         elif phase == Phase.EXPONENTIAL:
-            return self._handle_exponential(card, choice)
+            return SM2._handle_exponential(card, choice)
         elif phase == Phase.RELEARN:
-            return self._handle_relearn(card, choice)
+            return SM2._handle_relearn(card, choice)
+
+    @staticmethod
+    def expected_interval(card: Card) -> t.List[str]:
+        """
+        return the expected interval for the card
+        """
+        intervals = []
+
+        for choice in Choice:
+            result = SM2.get_next_card(card, choice)
+            intervals.append(minute_to_interval(result.interval))
+
+        return intervals
