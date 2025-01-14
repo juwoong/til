@@ -14,7 +14,6 @@ class Database:
 
     @staticmethod
     def _load_sqls(file_name) -> t.List[str]:
-        result = None
         with open(file_name) as f:
             result = f.read()
         
@@ -31,3 +30,5 @@ class Database:
             self.conn.execute(sql)
 
         self.conn.commit()
+        print(f"Database initialized with {len(sqls)} tables.")
+

@@ -1,4 +1,5 @@
 import math
+from cmath import phase
 from datetime import datetime
 import random
 import typing as t
@@ -74,6 +75,7 @@ class SM2:
         return Card(
             name=name,
             description=description,
+            phase=Phase.NEW,
         )
 
     def _handle_learning(self, card: Card, choice: Choice) -> SM2Result:
@@ -121,8 +123,7 @@ class SM2:
                 (interval + day_adjustment) * self.hard_interval_multiplier * self.interval_modifier,
                 self.max_interval
             )
-            # TODO: days_overdue / 4
-            # TODO: add fuzz to interval
+
             return SM2Result(phase=Phase.EXPONENTIAL, ease=ease, interval=interval)
         elif choice == Choice.GOOD:
             day_adjustment = self._get_overdue_parameter(card, choice)
@@ -176,7 +177,7 @@ class SM2:
     def get_next_card(self, card, choice) -> SM2Result:
         phase = card.phase
 
-        if phase == Phase.LEARNING:
+        if phase == Phase.LEARNING or phase == Phase.NEW:
             return self._handle_learning(card, choice)
         elif phase == Phase.EXPONENTIAL:
             return self._handle_exponential(card, choice)

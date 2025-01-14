@@ -13,6 +13,7 @@ class Choice(int, Enum):
     EASY = 3
 
 class Phase(int, Enum):
+    NEW = -1
     LEARNING = 0
     EXPONENTIAL = 1
     RELEARN = 2
