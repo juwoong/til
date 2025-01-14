@@ -31,6 +31,7 @@ while True:
     card.step = result.step if result.step is not None else card.step
     card.ease = result.ease if result.ease is not None else card.ease
     card.interval = result.interval if result.interval is not None else card.interval
+    card.leech = result.leech if result.leech is not None else card.leech
 
     expect = sm2.expected_interval(card)
 

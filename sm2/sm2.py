@@ -126,14 +126,11 @@ class SM2:
             return SM2Result(phase=Phase.EXPONENTIAL, ease=ease, interval=interval)
         elif choice == Choice.GOOD:
             day_adjustment = self._get_overdue_parameter(card, choice)
-            print("day_adjustment", day_adjustment)
             interval = min(
                 (interval + day_adjustment) * ease * self.interval_modifier,
                 self.max_interval,
             )
-            print("interval", interval)
             interval = self._get_fuzzed_interval(interval)
-            print("fuzzed", interval)
 
             # TODO: fix random to fuzz interval
             return SM2Result(phase=Phase.EXPONENTIAL, ease=ease, interval=interval)
@@ -145,7 +142,6 @@ class SM2:
                 self.max_interval,
             )
             interval = self._get_fuzzed_interval(interval)
-
             return SM2Result(phase=Phase.EXPONENTIAL, ease=ease, interval=interval)
 
     def _handle_relearn(self, card: Card, choice: Choice) -> SM2Result:
@@ -153,7 +149,7 @@ class SM2:
 
         if len(self.relearn_intervals) == 0 or card.step >= len(self.relearn_intervals):
             interval = card.interval * card.ease
-            return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=interval, ease=card.ease)
+            return SM2Result(phase=Phase.EXPONENTIAL, step=None, interval=interval, ease=card.ease, leech=card.leech + 1)
 
         if choice == Choice.AGAIN:
             return SM2Result(phase=Phase.RELEARN, step=0, interval=self.relearn_intervals[0], leech=card.leech + 1)
@@ -234,12 +230,11 @@ class SM2:
             max_interval = int(round(interval + delta))
 
             min_interval = max(2, min_interval)
-            max_interval = max(max_interval, self._max_days)
+            max_interval = min(max_interval, self._max_days)
             min_interval = min(min_interval, max_interval)
             return min_interval, max_interval
 
         min_interval, max_interval = _get_fuzz_range(interval_as_day)
-
         fuzzed_interval_days = (
             random.random() * (max_interval - min_interval + 1) + min_interval
         )
