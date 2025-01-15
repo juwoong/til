@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS cards (
     phase INTEGER NOT NULL, 
     interval INTEGER NOT NULL,
     ease REAL NOT NULL,
+    step INTEGER NOT NULL,
     leech INTEGER NOT NULL,
     last_review TIMESTAMP,
     next_review TIMESTAMP

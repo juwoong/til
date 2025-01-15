@@ -1,4 +1,5 @@
 import sqlite3
+from dto import AbstractModel
 from libs.parse_tables import parse_create_tables
 import typing as t
 
@@ -9,7 +10,7 @@ class Database:
         self.conn = sqlite3.connect(db_name)
         self.cursor = self.conn.cursor()
 
-        self.init()
+        # self.init()
 
 
     @staticmethod
@@ -21,14 +22,25 @@ class Database:
             return []
         
         return parse_create_tables(result)
+    
+    def fetch_all(self, sql: str, to: AbstractModel) -> t.List[AbstractModel]:
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
 
+        return [to.from_sql(row) for row in rows]
+    
+    def execute(self, model: AbstractModel):
+        query = model.to_sql()
 
-    def init(self):
-        sqls = self._load_sqls('sql/content.sql')
-
-        for sql in sqls:
-            self.conn.execute(sql)
-
+        self.cursor.execute(query)
         self.conn.commit()
-        print(f"Database initialized with {len(sqls)} tables.")
+
+    # def init(self):
+    #     sqls = self._load_sqls('sql/content.sql')
+
+    #     for sql in sqls:
+    #         self.conn.execute(sql)
+
+    #     self.conn.commit()
+    #     print(f"Database initialized with {len(sqls)} tables.")
 
