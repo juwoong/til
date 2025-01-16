@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import typing as t
 
 from database import Database
 from dto import Data, Card, Phase, Schedule, ScheduleStatus
+from sm2 import SM2
 
 class Scheduler:
     # 데이터 가져오고
@@ -102,3 +103,84 @@ class Scheduler:
         schedule.reviewed_cards = exponential_cards
 
         return schedule
+    
+
+
+class ScheduleContext:
+    db: Database
+    schedule: Schedule
+    sm2: SM2
+    _last_from: str
+
+    def __init__(self, db_name: str, schedule: Schedule):
+        self.db = Database(db_name)
+        self.schedule = schedule
+        self.sm2 = SM2()
+
+
+    def next(self) -> t.Optional[Card]:
+        if self.schedule.created_cards: 
+            self._last_from = 'created'
+            return self.schedule.created_cards[0]
+        
+        elif self.schedule.reviewed_cards:
+            self._last_from = 'reviewed'
+            return self.schedule.reviewed_cards[0]
+        
+        elif self.schedule.learning_cards:
+            self._last_from = 'learning'
+            return self.schedule.learning_cards[0]
+        
+        return None
+    
+    def card_move(self, list_from: str, idx: int, list_to: str) -> None:
+        target = None
+        target_id = None
+        if list_from == 'created':            
+            target = self.schedule.created_cards.pop(idx)
+            target_id = self.schedule.created.pop(idx)
+        elif list_from == 'reviewed':
+            target = self.schedule.reviewed_cards.pop(idx)
+            target_id = self.schedule.reviewed.pop(idx)
+        elif list_from == 'learning':
+            target = self.schedule.learning_cards.pop(idx)
+            target_id = self.schedule.learning.pop(idx)
+
+        if list_to == 'created':
+            self.schedule.created_cards.append(target)
+            self.schedule.created.append(target_id)
+        elif list_to == 'reviewed':
+            self.schedule.reviewed_cards.append(target)
+            self.schedule.reviewed.append(target_id)
+        elif list_to == 'learning':
+            self.schedule.learning_cards.append(target)
+            self.schedule.learning.append(target_id)
+        elif list_to == 'done':
+            self.schedule.done_cards.append(target)
+            self.schedule.done.append(target_id)
+    
+
+    def apply(self, card: Card, choice: int): 
+        result = self.sm2.get_next_card(card, choice)
+
+        card.phase = result.phase
+        card.step = result.step if result.step is not None else card.step
+        card.ease = result.ease if result.ease is not None else card.ease
+        card.interval = result.interval if result.interval is not None else card.interval
+        card.leech = result.leech if result.leech is not None else card.leech
+
+        if result.phase == Phase.EXPONENTIAL:
+            print("EXPONENTIAL", card.interval, self._last_from)
+            now = datetime.now()
+            card.next_review = now + timedelta(minutes=card.interval)
+            card.last_review = now
+
+            # Done으로 넘어가도 될거같은데
+            self.card_move(self._last_from, 0, 'done')
+        elif result.phase == Phase.LEARNING:
+            self.card_move(self._last_from, 0, 'learning') 
+        elif result.phase == Phase.RELEARN:
+            self.card_move(self._last_from, 0, 'learning')
+        
+        self.db.update(card)
+        self.db.update(self.schedule)

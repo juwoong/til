@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS schedules (
     status INTEGER NOT NULL, -- 0: not started, 1: in progress, 2: finished
     created TEXT NOT NULL DEFAULT '[]',
     learning TEXT NOT NULL DEFAULT '[]',
-    reviewed TEXT NOT NULL DEFAULT '[]'
+    reviewed TEXT NOT NULL DEFAULT '[]',
+    done TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS metadata (

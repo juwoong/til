@@ -124,11 +124,13 @@ class Schedule(AbstractModel):
     created: t.List[int] = []
     learning: t.List[int] = []
     reviewed: t.List[int] = []
+    done: t.List[int] = []
 
     # instance
     created_cards: t.List[Card] = []
     learning_cards: t.List[Card] = []
     reviewed_cards: t.List[Card] = []
+    done_cards: t.List[Card] = []
 
     @classmethod
     def from_sql(cls, row: tuple) -> 'Schedule':
@@ -152,5 +154,7 @@ class Schedule(AbstractModel):
         created_json = json.dumps(self.created)
         learning_json = json.dumps(self.learning)
         reviewed_json = json.dumps(self.reviewed)
+        done_json = json.dumps(self.done)
 
-        return f'UPDATE schedules SET status = {self.status.value}, created = \'{created_json}\', learning = \'{learning_json}\', reviewed = \'{reviewed_json}\' WHERE id = {self.id};'
+        return f'UPDATE schedules SET status = {self.status.value}, created = \'{created_json}\', learning = \'{learning_json}\', reviewed = \'{reviewed_json}\', done = \'{done_json}\' WHERE id = {self.id};'
+    

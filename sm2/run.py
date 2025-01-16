@@ -1,9 +1,12 @@
-from scheduler import Scheduler
+from scheduler import ScheduleContext, Scheduler
 from datetime import datetime
 
 scheduler = Scheduler('content.db')
 
 schedule = scheduler.get_schedule(datetime.now())
+ctx = ScheduleContext('content.db', schedule)
+
+
 
 # card = Card(
 #     data_id=2,
