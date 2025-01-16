@@ -18,6 +18,15 @@ CREATE TABLE IF NOT EXISTS datas (
     is_generated BOOLEAN NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TIMESTAMP NOT NULL,
+    status INTEGER NOT NULL, -- 0: not started, 1: in progress, 2: finished
+    created TEXT NOT NULL DEFAULT '[]',
+    learning TEXT NOT NULL DEFAULT '[]',
+    reviewed TEXT NOT NULL DEFAULT '[]'
+);
+
 CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT

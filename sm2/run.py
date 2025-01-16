@@ -1,10 +1,9 @@
 from scheduler import Scheduler
+from datetime import datetime
 
 scheduler = Scheduler('content.db')
 
-result = scheduler.load_unused_data(10)
-
-print(result)
+schedule = scheduler.get_schedule(datetime.now())
 
 # card = Card(
 #     data_id=2,

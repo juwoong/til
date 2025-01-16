@@ -29,8 +29,16 @@ class Database:
 
         return [to.from_sql(row) for row in rows]
     
-    def execute(self, model: AbstractModel):
+    def insert(self, model: AbstractModel) -> int:
         query = model.to_sql()
+
+        self.cursor.execute(query)
+        self.conn.commit()
+
+        return self.cursor.lastrowid
+    
+    def update(self, model: AbstractModel) -> None:
+        query = model.update_sql()
 
         self.cursor.execute(query)
         self.conn.commit()

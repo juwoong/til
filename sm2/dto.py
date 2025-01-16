@@ -21,6 +21,12 @@ class Phase(int, Enum):
     RELEARN = 3
 
 
+class ScheduleStatus(int, Enum):
+    NOT_STARTED = 0
+    IN_PROGRESS = 1
+    FINISHED = 2
+
+
 class AbstractModel(abc.ABC, BaseModel):
     @classmethod
     @abc.abstractmethod
@@ -29,6 +35,10 @@ class AbstractModel(abc.ABC, BaseModel):
 
     @abc.abstractmethod
     def to_sql(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def update_sql(self) -> str:
         pass
 
 
@@ -63,6 +73,7 @@ class Data(AbstractModel):
     
     def update_sql(self) -> str:
         return f'UPDATE datas SET is_generated = {int(self.is_generated)} WHERE id = {self.id};'
+
 
 class Card(AbstractModel):
     id: int = 0
@@ -104,3 +115,42 @@ class Card(AbstractModel):
         next_review = f"\'{self.next_review.strftime('%Y-%m-%d %H:%M:%S')}\'" if self.next_review else 'NULL'
 
         return f'UPDATE cards SET phase = {self.phase.value}, interval = {self.interval}, ease = {self.ease}, step = {self.step}, leech = {self.leech}, last_review = {last_review}, next_review = {next_review} WHERE id = {self.id};'
+
+
+class Schedule(AbstractModel):
+    id: int = 0
+    date: datetime
+    status: ScheduleStatus
+    created: t.List[int] = []
+    learning: t.List[int] = []
+    reviewed: t.List[int] = []
+
+    # instance
+    created_cards: t.List[Card] = []
+    learning_cards: t.List[Card] = []
+    reviewed_cards: t.List[Card] = []
+
+    @classmethod
+    def from_sql(cls, row: tuple) -> 'Schedule':
+        date = datetime.strptime(row[1], '%Y-%m-%d %H:%M:%S')
+
+        return cls(
+            id=row[0],
+            date=date,
+            status=ScheduleStatus(row[2]),
+            created=json.loads(row[3]),
+            learning=json.loads(row[4]),
+            reviewed=json.loads(row[5]),
+        )
+    
+    def to_sql(self) -> str:
+        date = f"\'{self.date.strftime('%Y-%m-%d %H:%M:%S')}\'"
+
+        return f'INSERT INTO schedules(date, status, created, learning, reviewed) VALUES ({date}, {self.status.value}, \'{json.dumps(self.created)}\', \'{json.dumps(self.learning)}\', \'{json.dumps(self.reviewed)}\');'
+    
+    def update_sql(self) -> str:
+        created_json = json.dumps(self.created)
+        learning_json = json.dumps(self.learning)
+        reviewed_json = json.dumps(self.reviewed)
+
+        return f'UPDATE schedules SET status = {self.status.value}, created = \'{created_json}\', learning = \'{learning_json}\', reviewed = \'{reviewed_json}\' WHERE id = {self.id};'
