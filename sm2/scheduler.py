@@ -184,3 +184,6 @@ class ScheduleContext:
         
         self.db.update(card)
         self.db.update(self.schedule)
+
+    def get_card_choices(self, card: Card) -> t.List[str]:
+        return self.sm2.expected_interval(card)
