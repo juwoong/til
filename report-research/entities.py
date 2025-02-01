@@ -14,6 +14,7 @@ class ArticleType(str, Enum):
 class RSSEntry(BaseModel):
     title: str
     description: str 
+    origin_content: t.Optional[str] = None
     published_at: datetime
     link: str
 
@@ -28,8 +29,22 @@ class RSSEntry(BaseModel):
             link=entry['link']
         )
     
+    @classmethod
+    def from_db(cls, row: dict) -> 'RSSEntry':
+        return cls(
+            title=row['title'],
+            description=row['summary'],
+            origin_content=row['original_content'],
+            published_at=row['published_at'],
+            link=row['url'],        )
+    
     def to_gpt_message(self) -> dict:
+        # return {
+        #     "role": "user",
+        #     "content": f"title: {self.title}\ndescription: {self.description}"
+        # }
         return {
             "role": "user",
-            "content": f"title: {self.title}\ndescription: {self.description}"
+            "content": f"title: {self.title}",
         }
+    
