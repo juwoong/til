@@ -2,7 +2,6 @@ from openai import AsyncOpenAI
 from config import Config
 from entities import RSSEntry
 import json
-import asyncio
 
 
 cfg = Config()
