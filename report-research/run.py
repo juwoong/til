@@ -1,10 +1,18 @@
 from db import get_articles_by_korean_date
+from gpts.generate_description import generate_description
+from gpts.generate_summary import SummaryRequest, get_summary
 from rss import parse_feed
 from entities import ArticleType, RSSEntry
 from gpts.classify import classify_rss_entries_async
 from gpts.select_article import select_articles
 import asyncio 
 import pickle
+from datetime import datetime
+
+import re
+
+def remove_leading_bracket(s: str) -> str:
+    return re.sub(r'^[\(\[].*?[\)\]]\s*', '', s)
 
 # 5천개에 2.5달러? 나쁘지 않은데?
 async def execute():
@@ -55,7 +63,35 @@ async def get_most_important_news():
     important_news = [entry for entry in entries if entry.article_type != ArticleType.NON_NECESSARY]
     selected = await select_articles(important_news)
 
-    print("selected:", selected)
+    print(selected)
+
+    summary_request = SummaryRequest(
+        reason=selected.get("reason"),
+        entry=selected.get("entry"),
+    )
+
+    summary = await get_summary(summary_request)
+    print(summary)
+
+    description = await generate_description(summary.get("tags"))
+    print(description)
+
+    print("\n\n=================================\n\n")
+    now = datetime.now().strftime('%Y년 %m월 %d일')
+
+    print(f"**{now}의 초보자 경제 뉴스**")
+    print(f"{remove_leading_bracket(selected['entry'].title)}\n\n")
+
+    print(f"{summary['summary']}\n\n")
+
+    print(f"**용어 설명**")
+    if type(description) is dict and 'result' in description:
+        description = description['result']
+    elif type(description) is dict and 'results' in description:
+        description = description['results']
+    
+    for desc in description:
+        print(f"{desc['emoji']} {desc['keyword']}\n{desc['description']}\n\n")
 
 
 if __name__ == "__main__":
