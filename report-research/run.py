@@ -1,7 +1,8 @@
 from db import get_articles_by_korean_date
 from rss import parse_feed
 from entities import ArticleType, RSSEntry
-from gpts import classify_rss_entries_async
+from gpts.classify import classify_rss_entries_async
+from gpts.select_article import select_articles
 import asyncio 
 import pickle
 
@@ -47,5 +48,15 @@ async def main():
         pickle.dump(entries, f)
 
 
+async def get_most_important_news():
+    with open('classified.pkl', 'rb') as f:
+        entries = pickle.load(f)
+
+    important_news = [entry for entry in entries if entry.article_type != ArticleType.NON_NECESSARY]
+    selected = await select_articles(important_news)
+
+    print("selected:", selected)
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(get_most_important_news())
