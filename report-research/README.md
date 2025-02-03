@@ -12,3 +12,8 @@
  14 | https://news.einfomax.co.kr/rss/S1N21.xml
  15 | https://www.infostockdaily.co.kr/rss/allArticle.xml
 ```
+
+# Todo list
+
+- [ ] 전체 프롬프트 비용 계산할수 있도록 로그 만들기
+- [ ] 데이터셋 / 프롬프트 / 실행 결과 로그로 쌓기
