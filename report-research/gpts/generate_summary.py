@@ -14,7 +14,7 @@ prompt = '''안녕하세요, 당신은 지금 하루의 경제 소식을 정리�
 요약은 경제 초심자들이 쉽게 이해할 수 있도록 중요한 내용을 위주로 작성하고, 최대한 풀어서 설명해 주세요. 또한 구어체로 작성해 주시면 감사하겠습니다.
 태그 또한 한글로 작성해 주세요.
 
-반환 포맷은 JSON Array여야 하며, 별도의 object로 wrapped되면 안됩니다.다음과 같은 구조여야 합니다.
+Return the results in JSON format as follows:
 {
   "summary": "Concise and essential summary of the news in up to three sentences.",
   "tags": ["Relevant", "Search-friendly", "Keywords", "For", "Tracking"]
