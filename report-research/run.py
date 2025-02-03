@@ -1,5 +1,6 @@
 from db import get_articles_by_korean_date
 from gpts.generate_description import generate_description
+from gpts.generate_questions import get_answers, get_question
 from gpts.generate_summary import SummaryRequest, get_summary
 from rss import parse_feed
 from entities import ArticleType, RSSEntry
@@ -41,8 +42,8 @@ feed_urls = [
 ]
 
 
-async def main():
-    results = await get_articles_by_korean_date('2025-01-30')
+async def get_article(date: datetime):
+    results = await get_articles_by_korean_date(date.strftime('%Y-%m-%d'))
     entries = [RSSEntry.from_db(row) for row in results]
 
     classified = await classify_rss_entries_async(entries)
@@ -51,14 +52,22 @@ async def main():
         print(f"{entry.title} - {classification['classification']}")
         entry.article_type = ArticleType(classification['classification'])
 
+    return entries
 
-    with open('classified.pkl', 'wb') as f:
-        pickle.dump(entries, f)
+def extract_results(results) -> list:
+    # check object is single
+    if not any([type(v) is list for v in results.values()]):
+        return [results]
 
+    if type(results) is dict and 'result' in results:
+        return results['result']
+    elif type(results) is dict and 'results' in results:
+        return results['results']
+    return results
 
 async def get_most_important_news():
-    with open('classified.pkl', 'rb') as f:
-        entries = pickle.load(f)
+    now = datetime.now()
+    entries = await get_article(now)
 
     important_news = [entry for entry in entries if entry.article_type != ArticleType.NON_NECESSARY]
     selected = await select_articles(important_news)
@@ -76,20 +85,29 @@ async def get_most_important_news():
     description = await generate_description(summary.get("tags"))
     print(description)
 
-    print("\n\n=================================\n\n")
-    now = datetime.now().strftime('%Y년 %m월 %d일')
+    questions = await get_question(selected['entry'])
+    print("questions", questions)
 
-    print(f"**{now}의 초보자 경제 뉴스**")
+    questions = extract_results(questions)
+    answers = await get_answers(selected['entry'], [it.get('question') for it in questions if it.get('question')])
+    answers = extract_results(answers)
+
+    print("answers", answers)
+
+    print("\n\n=================================\n\n")
+    now_format = now.strftime('%Y년 %m월 %d일')
+
+    print(f"**{now_format}의 초보자 경제 뉴스**")
     print(f"{remove_leading_bracket(selected['entry'].title)}\n\n")
 
     print(f"{summary['summary']}\n\n")
 
+    print(f"**Q&A**")
+    for answer in answers:
+        print(f"Q: {answer['question']}\nA: {answer['answer']}\n\n")
+
     print(f"**용어 설명**")
-    if type(description) is dict and 'result' in description:
-        description = description['result']
-    elif type(description) is dict and 'results' in description:
-        description = description['results']
-    
+    description = extract_results(description)
     for desc in description:
         print(f"{desc['emoji']} {desc['keyword']}\n{desc['description']}\n\n")
 
